@@ -11,57 +11,32 @@ jsPsych.plugins['free-sort'] = (function() {
 
   var plugin = {};
 
-  jsPsych.pluginAPI.registerPreload('free-sort', 'stimuli', 'image');
-
   plugin.info = {
     name: 'free-sort',
     description: '',
     parameters: {
-      stimuli: {
+      stim_path: {
         type: jsPsych.plugins.parameterType.STRING,
-        pretty_name: 'Stimuli',
+        pretty_name: 'Stimuli path',
         default: undefined,
-        array: true,
-        description: 'Images to be displayed.'
+        description: 'Path of stimuli'
       },
-      stim_x_location: {
-        type: jsPsych.plugins.parameterType.INT,
-        pretty_name: 'Stimulus x location',
+      stim_id: {
+        type: jsPsych.plugins.parameterType.STRING,
+        pretty_name: 'Stimuli ID',
         default: undefined,
-        array: true,
-        description: 'x location of images in pixels.'
-      },
-      stim_y_location: {
-        type: jsPsych.plugins.parameterType.INT,
-        pretty_name: 'Stimulus y location',
-        default: undefined,
-        array: true,
-        description: 'y location of images in pixels.'
-      },
-      stim_height: {
-        type: jsPsych.plugins.parameterType.INT,
-        pretty_name: 'Stimulus height',
-        default: undefined,
-        array: true,
-        description: 'Height of images in pixels.'
-      },
-      stim_width: {
-        type: jsPsych.plugins.parameterType.INT,
-        pretty_name: 'Stimulus width',
-        default: undefined,
-        array: true,
-        description: 'Width of images in pixels'
+        description: 'ID of stimuli'
       },
       sort_area_height: {
         type: jsPsych.plugins.parameterType.INT,
         pretty_name: 'Sort area height',
-        default: 637.5,
+        default: 720,
         description: 'The height of the container that subjects can move the stimuli in.'
       },
       sort_area_width: {
         type: jsPsych.plugins.parameterType.INT,
         pretty_name: 'Sort area width',
-        default: 850,
+        default: 1280,
         description: 'The width of the container that subjects can move the stimuli in.'
       },
       prompt: {
@@ -92,10 +67,9 @@ jsPsych.plugins['free-sort'] = (function() {
 
     var html = "";
     // check if there is a prompt and if it is shown above
-    if (trial.prompt !== null && trial.prompt_location == "above") {
+    if (trial.prompt !== null && trial.prompt_location === "above") {
       html += trial.prompt;
     }
-
     html += '<div '+
       'id="jspsych-free-sort-arena" '+
       'class="jspsych-free-sort-arena" '+
@@ -108,87 +82,86 @@ jsPsych.plugins['free-sort'] = (function() {
     }
 
     display_element.innerHTML = html;
-    display_element.querySelector("#jspsych-free-sort-arena").innerHTML += '<div ' +
-        'id="free-sort-static-arena" ' +
-        'class="free-sort-static-arena" '+
-        'style="position: relative; width:'+ 850 +'px; height:'+ 400 +'px; border:0px solid #ffffff;"'+
-        '></div>';
-
-    display_element.querySelector("#jspsych-free-sort-arena").innerHTML += '<div ' +
-        'id="free-sort-dynamic-arena" ' +
-        'class="free-sort-dynamic-arena" '+
-        'style="position: relative; width:'+ 850 +'px; height:'+ 237.5 +'px; border:0px solid #ffffff;"'+
-        '></div>';
+    let arena = display_element.querySelector("#jspsych-free-sort-arena");
+    arena.innerHTML +=
+        '<object class="test-img" data="' + trial.stim_path +
+        '" id="' + trial.stim_id + '" type="image/svg+xml">';
 
     // store initial location data
     var init_locations = [];
 
-    for (var i = 0; i < trial.stimuli.length; i++) {
-      // var coords = get_coordinate(trial.sort_area_width - trial.stim_width[i], trial.sort_area_height - trial.stim_height[i], i);
-      var coords = {
-        x: trial.stim_x_location[i],
-        y: trial.stim_y_location[i]
-      };
-      var class_name = i === 0 ? "jspsych-free-sort-draggable" : "jspsych-free-sort-not-draggable";
-      var arena_name = i === 0 ? "#free-sort-dynamic-arena" : "#free-sort-static-arena";
-
-      display_element.querySelector(arena_name).innerHTML += '<img '+
-        'src="'+trial.stimuli[i]+'" '+
-        'id="'+ i +'" '+
-        'data-src="'+trial.stimuli[i]+'" '+
-        'class='+ class_name +' '+
-        'draggable="false" '+
-        'style="position: absolute; cursor: move;' +
-          'max-width: 95%; object-fit: cover;' +
-          ' top:'+coords.y+'px; left:'+coords.x+'px;">'+
-        '</img>';
-
-      init_locations.push({
-        "src": trial.stimuli[i],
-        "x": coords.x,
-        "y": coords.y
-      });
-    }
 
     display_element.innerHTML += '<button id="jspsych-free-sort-done-btn" class="jspsych-btn">'+trial.button_label+'</button>';
 
     var maxz = 1;
 
     var moves = [];
+    var relative_moves = [];
 
-    var draggables = display_element.querySelectorAll('.jspsych-free-sort-draggable');
-    // TODO: Change to JqueryUI draggable
-    // console.log("draggables.length: "+draggables.length);
+    $('.test-img')[0].addEventListener('load', onLoadFunc, true);
 
-    for(var i=0;i<draggables.length; i++){
-      draggables[i].addEventListener('mousedown', function(event){
-          // console.log("Mouse Down");
+    function onLoadFunc(evt){
+      var svgDocument = evt.target.contentDocument;
 
-        var x = event.pageX - event.currentTarget.offsetLeft;
-        var y = event.pageY - event.currentTarget.offsetTop - window.scrollY;
-        var elem = event.currentTarget;
-        elem.style.zIndex = ++maxz;
+      var dynamic = svgDocument.getElementById("dynamic");
+      let svg_child_nodes = svgDocument.firstChild.children;
+      for (var i = 0; i <svg_child_nodes.length; i++) {
+        if (svg_child_nodes[i].id === "") { continue;}
 
-        var mousemoveevent = function(e){
-          elem.style.top =  Math.min(trial.sort_area_height - trial.stim_height[elem.id], Math.max(0,(e.clientY - y))) + 'px';
-          elem.style.left = Math.min(trial.sort_area_width  - trial.stim_width[elem.id],  Math.max(0,(e.clientX - x))) + 'px';
-        };
-        document.addEventListener('mousemove', mousemoveevent);
+        var bounding_rect = svg_child_nodes[i].getBoundingClientRect();
 
-        var mouseupevent = function(e){
-            // console.log("Mouse Up");
-          document.removeEventListener('mousemove', mousemoveevent);
-          // console.log(elem.id);
-          moves.push({
-            "src": elem.dataset.src,
-            "x": elem.offsetLeft,
-            "y": elem.offsetTop
-          });
-          document.removeEventListener('mouseup', mouseupevent);
-        };
-        document.addEventListener('mouseup', mouseupevent);
-      });
+        init_locations.push({
+          "src": svg_child_nodes[i].id,
+          "x": bounding_rect.x,
+          "y": bounding_rect.y
+        });
+      }
+
+      makeDraggable(dynamic);
     }
+
+
+    function makeDraggable(svg) {
+      var rect = svg.getBoundingClientRect();
+      svg.addEventListener('mousedown', startDrag);
+      svg.addEventListener('mousemove', drag);
+      svg.addEventListener('mouseup', endDrag);
+      svg.addEventListener('mouseleave', endDrag);
+
+      var selectedElement = false;
+
+      var x = rect.x + 0.5 * rect.width;
+      var y = rect.y + 0.5 * rect.height;
+
+      function startDrag(e) {
+        selectedElement = e.currentTarget;
+      }
+
+      function drag(e) {
+        if (selectedElement) {
+          e.preventDefault();
+          let x_cor = (e.clientX - x) + 'px';
+          let y_cor =  (e.clientY - y) + 'px';
+          selectedElement.setAttributeNS(null, "x", x_cor);
+          selectedElement.setAttributeNS(null, "y", y_cor);
+          moves.push({
+            "src": "dynamic",
+            "x": e.clientX,
+            "y": e.clientY
+          });
+          relative_moves.push({
+            "src": "dynamic",
+            "x": x_cor,
+            "y": y_cor
+          })
+        }
+      }
+
+      function endDrag(e) {
+        selectedElement = false;
+      }
+    }
+
 
     display_element.querySelector('#jspsych-free-sort-done-btn').addEventListener('click', function(){
 
@@ -197,18 +170,19 @@ jsPsych.plugins['free-sort'] = (function() {
       // gather data
       // get final position of all objects
       var final_locations = [];
-      var matches = display_element.querySelectorAll('.jspsych-free-sort-draggable');
-      for(var i=0; i<matches.length; i++){
-        final_locations.push({
-          "src": matches[i].dataset.src,
-          "x": parseInt(matches[i].style.left),
-          "y": parseInt(matches[i].style.top)
-        });
-      }
+      var arena = display_element.querySelectorAll('.test-img');
+      let dynamic = arena.item(0).getSVGDocument().getElementById("dynamic");
+      let rect = dynamic.getBoundingClientRect();
+      final_locations.push({
+        "src": dynamic.id,
+        "x": rect.x,
+        "y": rect.y
+      });
 
       var trial_data = {
         "init_locations": JSON.stringify(init_locations),
         "moves": JSON.stringify(moves),
+        "relative moves": JSON.stringify(relative_moves),
         "final_locations": JSON.stringify(final_locations),
         "rt": rt
       };
@@ -219,20 +193,6 @@ jsPsych.plugins['free-sort'] = (function() {
     });
 
   };
-
-  // helper functions
-
-  // function get_coordinate(max_width, max_height, index) {
-  //   // var rnd_x = Math.floor(Math.random() * (max_width - 1));
-  //   // var rnd_y = Math.floor(Math.random() * (max_height - 1));
-  //   var rnd_x = trial.stim_x_location[index];
-  //   var rnd_y = trial.stim_y_location[index];
-  //
-  //   return {
-  //     x: rnd_x,
-  //     y: rnd_y
-  //   };
-  // }
 
   return plugin;
 })();
