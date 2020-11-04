@@ -98,7 +98,7 @@ jsPsych.plugins['free-sort'] = (function() {
     var moves = [];
     var relative_moves = [];
 
-    $('.test-img')[0].addEventListener('load', onLoadFunc, true);
+
 
     function onLoadFunc(evt){
       var svgDocument = evt.target.contentDocument;
@@ -162,6 +162,8 @@ jsPsych.plugins['free-sort'] = (function() {
       }
     }
 
+    $('.test-img')[0].addEventListener('load', onLoadFunc, true);
+
 
     display_element.querySelector('#jspsych-free-sort-done-btn').addEventListener('click', function(){
 
@@ -180,12 +182,15 @@ jsPsych.plugins['free-sort'] = (function() {
       });
 
       var trial_data = {
+        "stim_id": JSON.stringify(stim_id),
         "init_locations": JSON.stringify(init_locations),
         "moves": JSON.stringify(moves),
         "relative moves": JSON.stringify(relative_moves),
         "final_locations": JSON.stringify(final_locations),
         "rt": rt
       };
+
+      // jsPsych.turk.submitToTurk(trial_data); // Uncomment when working with AWS
 
       // advance to next part
       display_element.innerHTML = '';
