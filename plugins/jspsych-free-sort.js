@@ -70,6 +70,7 @@ jsPsych.plugins['free-sort'] = (function() {
     if (trial.prompt !== null && trial.prompt_location === "above") {
       html += trial.prompt;
     }
+
     html += '<div '+
       'id="jspsych-free-sort-arena" '+
       'class="jspsych-free-sort-arena" '+
@@ -82,29 +83,45 @@ jsPsych.plugins['free-sort'] = (function() {
     }
 
     display_element.innerHTML = html;
-    let arena = display_element.querySelector("#jspsych-free-sort-arena");
-    arena.innerHTML +=
-        '<object class="test-img" data="' + trial.stim_path +
-        '" id="' + trial.stim_id + '" type="image/svg+xml">';
+    var is_svg_onload_ran = false;
+
+    let ajax = new XMLHttpRequest();
+    ajax.open("GET", trial.stim_path, true);
+    ajax.onload = function(e) {
+      var svg_div = document.createElement("div");
+      svg_div.innerHTML = ajax.responseText;
+      svg_div.id = trial.stim_id;
+      svg_div.className = "test-img";
+      let svg_element = svg_div.children[0];
+      svg_element.onload = onLoadFunc;
+      let arena = display_element.querySelector("#jspsych-free-sort-arena");
+      arena.appendChild(svg_div);
+
+      // Make sure we are initializing the SVG - in case it loaded already
+      if (!is_svg_onload_ran){
+        svgInit(svg_element);
+      }
+    };
+    ajax.send();
 
     // store initial location data
     var init_locations = [];
 
-
     display_element.innerHTML += '<button id="jspsych-free-sort-done-btn" class="jspsych-btn">'+trial.button_label+'</button>';
-
-    var maxz = 1;
 
     var moves = [];
     var relative_moves = [];
 
-
-
     function onLoadFunc(evt){
-      var svgDocument = evt.target.contentDocument;
+      let svgDocument = evt.target;
+      svgInit(svgDocument)
+    }
+
+    function svgInit(svgDocument){
+      is_svg_onload_ran = true;
 
       var dynamic = svgDocument.getElementById("dynamic");
-      let svg_child_nodes = svgDocument.firstChild.children;
+      let svg_child_nodes = svgDocument.children;
       for (var i = 0; i <svg_child_nodes.length; i++) {
         if (svg_child_nodes[i].id === "") { continue;}
 
@@ -162,9 +179,6 @@ jsPsych.plugins['free-sort'] = (function() {
       }
     }
 
-    $('.test-img')[0].addEventListener('load', onLoadFunc, true);
-
-
     display_element.querySelector('#jspsych-free-sort-done-btn').addEventListener('click', function(){
 
       var end_time = performance.now();
@@ -172,8 +186,8 @@ jsPsych.plugins['free-sort'] = (function() {
       // gather data
       // get final position of all objects
       var final_locations = [];
-      var arena = display_element.querySelectorAll('.test-img');
-      let dynamic = arena.item(0).getSVGDocument().getElementById("dynamic");
+      let svg_element = display_element.querySelectorAll('.test-img')[0].firstElementChild;
+      let dynamic = svg_element.getElementById("dynamic");
       let rect = dynamic.getBoundingClientRect();
       final_locations.push({
         "src": dynamic.id,
