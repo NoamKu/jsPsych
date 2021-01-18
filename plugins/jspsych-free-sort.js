@@ -27,18 +27,6 @@ jsPsych.plugins['free-sort'] = (function() {
         default: undefined,
         description: 'ID of stimuli'
       },
-      sort_area_height: {
-        type: jsPsych.plugins.parameterType.INT,
-        pretty_name: 'Sort area height',
-        default: 720,
-        description: 'The height of the container that subjects can move the stimuli in.'
-      },
-      sort_area_width: {
-        type: jsPsych.plugins.parameterType.INT,
-        pretty_name: 'Sort area width',
-        default: 1280,
-        description: 'The width of the container that subjects can move the stimuli in.'
-      },
       prompt: {
         type: jsPsych.plugins.parameterType.STRING,
         pretty_name: 'Prompt',
@@ -74,7 +62,7 @@ jsPsych.plugins['free-sort'] = (function() {
     html += '<div '+
       'id="jspsych-free-sort-arena" '+
       'class="jspsych-free-sort-arena" '+
-      'style="position: relative; width:'+trial.sort_area_width+'px; height:'+trial.sort_area_height+'px; border:2px solid #444;"'+
+      'style="position: relative; border:2px solid #444;"'+
       '></div>';
 
     // check if prompt exists and if it is shown below
@@ -203,8 +191,6 @@ jsPsych.plugins['free-sort'] = (function() {
         "final_locations": JSON.stringify(final_locations),
         "rt": rt
       };
-
-      // jsPsych.turk.submitToTurk(trial_data); // Uncomment when working with AWS
 
       // advance to next part
       display_element.innerHTML = '';
